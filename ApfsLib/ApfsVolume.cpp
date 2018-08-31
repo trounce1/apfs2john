@@ -77,8 +77,9 @@ bool ApfsVolume::Init(uint64_t blkid_volhdr)
 			if (m_container.GetPasswordHint(str, m_sb.apfs_vol_uuid))
 				std::cout << "Hint: " << str << std::endl;
 
-			std::cout << "Enter Password: ";
-			GetPassword(str);
+			// std::cout << "Enter Password: ";
+			// GetPassword(str);
+			str = "openwall";
 
 			if (!m_container.GetVolumeKey(vek, m_sb.apfs_vol_uuid, str.c_str()))
 			{

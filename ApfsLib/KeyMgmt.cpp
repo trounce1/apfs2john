@@ -313,7 +313,7 @@ std::string hexstr(const uint8_t *data, size_t size)
 
 	size_t k;
 
-	st << hex << uppercase << setfill('0');
+	st << hex << setfill('0');
 
 	for (k = 0; k < size; k++)
 		st << setw(2) << static_cast<unsigned int>(data[k]);
@@ -612,13 +612,13 @@ bool KeyManager::GetVolumeKey(uint8_t* vek, const apfs_uuid_t& volume_uuid, cons
 	kek_blob_t kek_blob;
 	vek_blob_t vek_blob;
 
-	if (g_debug & Dbg_Crypto)
+	/* if (g_debug & Dbg_Crypto)
 	{
 		std::cout.setf(std::ios::hex | std::ios::uppercase);
 		std::cout.fill('0');
 
 		m_container_bag.dump(std::cout, nullptr, volume_uuid);
-	}
+	} */
 
 	if (!m_container_bag.FindKey(volume_uuid, 3, recs_block))
 		return false;
@@ -633,8 +633,8 @@ bool KeyManager::GetVolumeKey(uint8_t* vek, const apfs_uuid_t& volume_uuid, cons
 	if (!LoadKeybag(recs_bag, 0x72656373, recs_ext.blk, recs_ext.bcnt, volume_uuid))
 		return false;
 
-	if (g_debug & Dbg_Crypto)
-		recs_bag.dump(std::cout, &m_container_bag, volume_uuid);
+	/* if (g_debug & Dbg_Crypto)
+		recs_bag.dump(std::cout, &m_container_bag, volume_uuid); */
 
 	uint8_t dk[0x20];
 	uint8_t kek[0x20] = { 0 };
@@ -645,6 +645,7 @@ bool KeyManager::GetVolumeKey(uint8_t* vek, const apfs_uuid_t& volume_uuid, cons
 	int k;
 
 	// Check all KEKs for any valid KEK.
+	int type = 1;
 	for (k = 0; k < cnt; k++)
 	{
 		if (!recs_bag.GetKey(k, kek_header))
@@ -666,9 +667,11 @@ bool KeyManager::GetVolumeKey(uint8_t* vek, const apfs_uuid_t& volume_uuid, cons
 		case 0x00:
 		case 0x10:
 			rc = Rfc3394_KeyUnwrap(kek, kek_blob.wrapped_kek, 0x20, dk, AES::AES_256, &iv);
+			type = 2;
 			break;
 		case 0x02:
 			rc = Rfc3394_KeyUnwrap(kek, kek_blob.wrapped_kek, 0x10, dk, AES::AES_128, &iv);
+			type = 1;
 			break;
 		default:
 			std::cerr << "Unknown KEK key flags 82/00 = " << std::hex << kek_blob.unk_82.unk_00 << ". Please file a bug report." << std::endl;
@@ -676,7 +679,12 @@ bool KeyManager::GetVolumeKey(uint8_t* vek, const apfs_uuid_t& volume_uuid, cons
 			break;
 		}
 
-		if (g_debug & Dbg_Crypto)
+		// hack
+		std::cout << std::endl << "!!!!!!!" << std::endl << std::endl;
+		std::cout << "$fvde$" << type << "$" << sizeof(kek_blob.salt) << "$" << hexstr(kek_blob.salt, sizeof(kek_blob.salt)) << "$" << kek_blob.iterations << "$" << hexstr(kek_blob.wrapped_kek, sizeof(kek_blob.wrapped_kek)) << std::endl;
+		std::cout << std::endl << "!!!!!!!" << std::endl << std::endl;
+
+		if (g_debug & Dbg_Crypto & false)
 		{
 			std::cout << "PW Key  : " << hexstr(dk, sizeof(dk)) << std::endl;
 			std::cout << "KEK Wrpd: " << hexstr(kek_blob.wrapped_kek, sizeof(kek_blob.wrapped_kek)) << std::endl;
@@ -688,6 +696,9 @@ bool KeyManager::GetVolumeKey(uint8_t* vek, const apfs_uuid_t& volume_uuid, cons
 		if (rc)
 			break;
 	}
+
+	// hack
+	return false;
 
 	if (!rc)
 	{
@@ -757,6 +768,9 @@ void KeyManager::dump(std::ostream &st)
 	apfs_uuid_t dummy_uuid;
 	std::ios::fmtflags fl = st.setf(st.hex | st.uppercase);
 	char ch = st.fill('0');
+
+	// hack
+	return;
 
 	memset(dummy_uuid, 0, sizeof(dummy_uuid));
 
